@@ -26,8 +26,11 @@ const { data, error } = await supabaseClient
 // konkretne kolumny
 .select('id, name, price')
 
-// zagnieżdżona tabela powiązana kluczem obcym
+// zagnieżdżona tabela powiązana kluczem obcym (domyślnie LEFT JOIN)
 .select('id, status, order_items ( product_name, quantity )')
+
+// zagnieżdżona tabela — INNER JOIN (tylko rekordy które mają powiązane dane)
+.select('id, status, order_items!inner ( product_name, quantity )')
 
 // dwie zagnieżdżone tabele naraz
 .select(`
@@ -41,6 +44,23 @@ const { data, error } = await supabaseClient
 
 **Zagnieżdżony select działa tylko gdy między tabelami istnieje klucz obcy w schemacie.**
 Supabase sam wykrywa relację i robi JOIN — nie musisz pisać JOIN ręcznie.
+
+**LEFT JOIN vs INNER JOIN w zagnieżdżonym select:**
+
+| | LEFT JOIN (domyślne) | INNER JOIN (`!inner`) |
+|---|---|---|
+| Składnia | `orders ( id, total )` | `orders!inner ( id, total )` |
+| Zwraca | wszystkie rekordy z głównej tabeli, nawet jeśli brak powiązanych | tylko rekordy które mają powiązane dane |
+| Brak powiązania | zagnieżdżone pole = `[]` lub `null` | wiersz znika z wyniku |
+| Kiedy używać | chcesz wszystkich klientów, nawet bez zamówień | chcesz tylko klientów którzy mają zamówienia |
+
+```ts
+// LEFT JOIN — zwraca wszystkich klientów, orders będzie [] jeśli brak zamówień
+.select('id, name, orders ( id, total )')
+
+// INNER JOIN — tylko klienci którzy mają co najmniej jedno zamówienie
+.select('id, name, orders!inner ( id, total )')
+```
 
 Wynik zagnieżdżonej relacji to obiekt (jeden-do-jednego) lub tablica (jeden-do-wielu):
 ```ts
